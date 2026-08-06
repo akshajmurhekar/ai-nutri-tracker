@@ -11,6 +11,7 @@ import { MEAL_TYPE_COLORS, type MealType } from '@/lib/constants';
 import type { MealLog } from '@/lib/types';
 
 import Footer from '@/components/Footer';
+import MealDetailModal from '@/components/MealDetailModal';
 import { ThemeToggle } from '@/components/theme';
 
 interface DayGroup {
@@ -26,6 +27,7 @@ export default function HistoryPage() {
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [selected, setSelected] = useState<MealLog | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -72,6 +74,7 @@ export default function HistoryPage() {
     try {
       await deleteMeal(token, id);
       setLogs((prev) => prev.filter((m) => m.id !== id));
+      setSelected(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete entry');
     } finally {
@@ -124,9 +127,10 @@ export default function HistoryPage() {
             </div>
             <div className="flex flex-col gap-2">
               {g.meals.map((m) => (
-                <div
+                <button
                   key={m.id}
-                  className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
+                  onClick={() => setSelected(m)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-left transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                 >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -147,15 +151,8 @@ export default function HistoryPage() {
                   <span className="shrink-0 text-sm tabular-nums text-zinc-600 dark:text-zinc-300">
                     {Number(m.calories)} kcal
                   </span>
-                  <button
-                    onClick={() => handleDelete(m.id)}
-                    disabled={deleting === m.id}
-                    aria-label="Delete entry"
-                    className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-red-500 transition hover:bg-red-500/10 disabled:opacity-50"
-                  >
-                    {deleting === m.id ? '…' : 'Remove'}
-                  </button>
-                </div>
+                  <span className="shrink-0 text-zinc-400">›</span>
+                </button>
               ))}
             </div>
           </section>
@@ -163,6 +160,15 @@ export default function HistoryPage() {
       )}
 
       <Footer />
+
+      {selected && (
+        <MealDetailModal
+          meal={selected}
+          deleting={deleting === selected.id}
+          onClose={() => setSelected(null)}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }
