@@ -24,7 +24,7 @@ tracking calories & macros. Built with **Next.js (App Router, TS, Tailwind)**,
 | Framework    | Next.js 16 (App Router, TS, Tailwind) |
 | Database     | Supabase Postgres + RLS             |
 | Auth         | Supabase Auth (email + password)    |
-| AI           | Gemini `gemini-2.5-flash-lite` (structured JSON output) |
+| AI           | Gemini `gemini-3.1-flash-lite` (structured JSON output) |
 | Charts       | Recharts                            |
 
 ---
