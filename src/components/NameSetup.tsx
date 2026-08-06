@@ -24,8 +24,11 @@ export default function NameSetup({ email, onSaved }: NameSetupProps) {
     setBusy(true);
     setError(null);
 
-    // Set a real password so the user can sign out and back in later.
-    const { error: pwdError } = await supabase.auth.updateUser({ password });
+    // Set a real password + name on the session (name read instantly later).
+    const { error: pwdError } = await supabase.auth.updateUser({
+      password,
+      data: { name: cleanedName },
+    });
     if (pwdError) {
       setError(pwdError.message);
       setBusy(false);

@@ -14,6 +14,7 @@ import {
 } from '@/lib/api';
 import { supabase } from '@/lib/supabase/client';
 import { buildWeekly, summarizeToday } from '@/lib/aggregate';
+import { getCachedName, setCachedName } from '@/lib/storage';
 import type { MealLog } from '@/lib/types';
 import type { MealType } from '@/lib/constants';
 
@@ -28,6 +29,9 @@ export default function Dashboard() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<MeProfile | null>(null);
+  // Greet from the cached name so the header renders instantly, then let the
+  // network confirm it. Avoids the "Hi friend → Hi <name>" flash.
+  const [displayName, setDisplayName] = useState<string | null>(() => getCachedName());
   const [logs, setLogs] = useState<MealLog[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -39,9 +43,27 @@ export default function Dashboard() {
         return;
       }
       setToken(t);
+
+      // Fast path: the name usually already lives on the session, so prefer it
+      // without waiting on the DB-backed /api/me call.
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const metaName = session?.user?.user_metadata?.name as string | undefined;
+        if (typeof metaName === 'string' && metaName.trim()) {
+          setDisplayName(metaName);
+          setCachedName(metaName);
+        }
+      } catch {
+        /* ignore — the DB-backed fetch below will supply the name */
+      }
+
       try {
         const [me, data] = await Promise.all([fetchMe(t), fetchMeals(t)]);
         setProfile(me);
+        setDisplayName(me.name);
+        setCachedName(me.name);
         setLogs(data.logs);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : 'Failed to load your data');
@@ -71,9 +93,12 @@ export default function Dashboard() {
     if (!token) return;
     const updated = await saveProfileName(token, name);
     setProfile(updated);
+    setDisplayName(updated.name);
+    setCachedName(updated.name);
   }
 
   async function handleSignOut() {
+    setCachedName(null);
     await supabase.auth.signOut();
     router.replace('/login');
     router.refresh();
@@ -88,7 +113,7 @@ export default function Dashboard() {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold tracking-tight">
-            Hi {profile?.name ?? 'friend'} 👋
+            Hi {displayName ?? profile?.name ?? 'friend'} 👋
           </h1>
           <p className="text-xs text-zinc-500">
             {new Date().toLocaleDateString(undefined, {

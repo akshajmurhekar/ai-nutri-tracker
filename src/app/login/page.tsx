@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase/client';
+import { setCachedName } from '@/lib/storage';
 import Footer from '@/components/Footer';
 import { ThemeToggle } from '@/components/theme';
 
@@ -24,11 +25,13 @@ export default function LoginPage() {
     setBusy(true);
     try {
       if (mode === 'in') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           setError(error.message);
           return;
         }
+        const metaName = data.session?.user?.user_metadata?.name as string | undefined;
+        setCachedName(metaName || email.split('@')[0] || null);
         router.replace('/');
         router.refresh();
       } else {
