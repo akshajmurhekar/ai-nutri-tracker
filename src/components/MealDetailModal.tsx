@@ -50,11 +50,9 @@ export default function MealDetailModal({ meal, deleting, onClose, onDelete }: M
           </button>
         </div>
 
-        {/* Date & time */}
+        {/* Date */}
         <p className="mt-3 text-sm text-zinc-500">
           {when.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-          {' · '}
-          {when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
         </p>
 
         {/* What was eaten */}
