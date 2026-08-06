@@ -6,6 +6,7 @@ export interface MealLog {
   created_at: string;
   meal_type: MealType;
   raw_text: string;
+  description: string | null;
   calories: number;
   protein: number;
   carbs: number;
@@ -20,7 +21,6 @@ export interface Quota {
 
 export interface MealsResponse {
   logs: MealLog[];
-  quota: Quota;
 }
 
 export interface LogFoodSuccess {

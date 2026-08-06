@@ -19,15 +19,16 @@ create table if not exists public.user_quotas (
 -- One row per accepted (food) meal entry.
 -- ---------------------------------------------------------------------------
 create table if not exists public.meal_logs (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid        not null references auth.users (id) on delete cascade,
-  created_at timestamptz not null default now(),
-  meal_type  text        not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
-  raw_text   text        not null,
-  calories   numeric     not null,
-  protein    numeric     not null,
-  carbs      numeric     not null,
-  fat        numeric     not null
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid        not null references auth.users (id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  meal_type   text        not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
+  raw_text    text        not null,
+  description text,
+  calories    numeric     not null,
+  protein     numeric     not null,
+  carbs       numeric     not null,
+  fat         numeric     not null
 );
 
 -- ---------------------------------------------------------------------------

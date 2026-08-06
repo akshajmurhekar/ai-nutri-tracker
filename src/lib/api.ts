@@ -36,14 +36,26 @@ export async function saveProfileName(token: string, name: string): Promise<MePr
   return data;
 }
 
-export async function fetchMeals(token: string): Promise<MealsResponse> {
-  const res = await fetch('/api/meals', {
+export async function fetchMeals(token: string, days = 8): Promise<MealsResponse> {
+  const res = await fetch(`/api/meals?days=${days}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     throw new Error((await res.json().catch(() => ({})))?.error ?? 'Failed to load meals');
   }
   return res.json();
+}
+
+export async function deleteMeal(token: string, id: string): Promise<void> {
+  const res = await fetch('/api/meals', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Failed to delete meal');
+  }
 }
 
 export type LogFoodResult =
