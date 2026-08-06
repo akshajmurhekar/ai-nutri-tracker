@@ -23,6 +23,7 @@ import LogForm from './LogForm';
 import NameSetup from './NameSetup';
 import SummaryCards from './SummaryCards';
 import WeeklyChart from './WeeklyChart';
+import WeightCard from './WeightCard';
 import { ThemeToggle } from './theme';
 
 export default function Dashboard() {
@@ -154,6 +155,7 @@ export default function Dashboard() {
         <>
           <SummaryCards today={today} />
           <WeeklyChart week={week} />
+          <WeightCard token={token} />
         </>
       )}
 

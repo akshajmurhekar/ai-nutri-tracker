@@ -1,4 +1,4 @@
-import type { LogFoodSuccess, MealsResponse, Quota } from './types';
+import type { LogFoodSuccess, MealsResponse, Quota, WeightEntry } from './types';
 import { supabase } from './supabase/client';
 
 /** Current access token, or null when signed out. */
@@ -58,6 +58,30 @@ export async function fetchMeals(token: string, days = 8): Promise<MealsResponse
     throw new Error((await res.json().catch(() => ({})))?.error ?? 'Failed to load meals');
   }
   return res.json();
+}
+
+export async function fetchWeights(token: string, days = 90): Promise<WeightEntry[]> {
+  const res = await fetch(`/api/weight?days=${days}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error((await res.json().catch(() => ({})))?.error ?? 'Failed to load weight');
+  }
+  const data = (await res.json()) as { weights: WeightEntry[] };
+  return data.weights ?? [];
+}
+
+export async function logWeight(token: string, weightKg: number): Promise<WeightEntry> {
+  const res = await fetch('/api/weight', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ weight_kg: weightKg }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error ?? 'Could not save weight');
+  }
+  return data.weight;
 }
 
 export async function deleteMeal(token: string, id: string): Promise<void> {

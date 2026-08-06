@@ -23,6 +23,14 @@ export interface MealsResponse {
   logs: MealLog[];
 }
 
+export interface WeightEntry {
+  id: string;
+  user_id: string;
+  date: string; // yyyy-mm-dd
+  weight_kg: number;
+  created_at: string;
+}
+
 export interface LogFoodSuccess {
   meal: MealLog;
   quota: Quota;
