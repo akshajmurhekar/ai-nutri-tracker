@@ -53,9 +53,10 @@ DESCRIPTION:
 - Whenever "is_food" is true, also set "description" to a short, clean, human-friendly label of the meal (e.g. "Matar paneer with 3 rotis", "2 boiled eggs and a cup of curd"). Do not just repeat the raw input verbatim; tidy it up while keeping it accurate. One sentence, 2-12 words.
 
 MACRO ESTIMATION:
-- Estimate reasonable, rounded values for a normal adult portion of the described meal.
+- Estimate realistic totals for a normal adult portion of the described meal — match what a real nutrition-tracking app (MyFitnessPal/Chronometer) would report. Do NOT under-estimate.
+- IMPORTANT: include calorie-dense components even when the user does not list them explicitly, especially cooking oils, ghee, butter, and cream — these are a major calorie source in home-style and Indian cooking (e.g. matar paneer, butter chicken, curries, fried items). A typical cooked Indian dish contains substantial oil/ghee.
 - Use standard food data. calories ~= 4*protein + 4*carbs + 9*fat, and keep them roughly consistent (protein 4 kcal/g, carbs 4 kcal/g, fat 9 kcal/g).
-- Round to whole numbers. Prefer believable numbers; do not invent absurd values.
+- Round to whole numbers. Be realistic and generous rather than conservative; these values feed a daily budget, so under-counting is the more costly error.
 - Max bounds (reply within these or the entry will be rejected): calories <= ${MACRO_LIMITS.calories}, protein <= ${MACRO_LIMITS.protein}g, carbs <= ${MACRO_LIMITS.carbs}g, fat <= ${MACRO_LIMITS.fat}g.
 
 Return STRICT JSON matching the schema.`;
@@ -76,7 +77,7 @@ export async function parseMeal(rawText: string): Promise<ParsedMeal> {
     // current lightweight (flash-lite tier) model available on this key.
     model: 'gemini-3.1-flash-lite',
     generationConfig: {
-      temperature: 0.2,
+      temperature: 0.4,
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_SCHEMA,
     },

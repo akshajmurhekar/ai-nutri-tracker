@@ -4,7 +4,21 @@ import { supabase } from './supabase/client';
 /** Current access token, or null when signed out. */
 export async function getAccessToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  const session = data.session;
+  if (!session) return null;
+
+  // Access tokens expire after ~1 hour. Browsers throttle background timers, so
+  // the client's auto-refresh can be delayed after a long idle period and leave
+  // us about to send an expired token (which yields "Unauthorized"). Refresh
+  // on demand via the long-lived refresh token before returning.
+  const expiresAt = session.expires_at ?? 0;
+  if (expiresAt && Date.now() >= expiresAt * 1000) {
+    const { data: refreshed, error } = await supabase.auth.refreshSession();
+    if (error || !refreshed.session) return null;
+    return refreshed.session.access_token;
+  }
+
+  return session.access_token;
 }
 
 export interface MeProfile {
