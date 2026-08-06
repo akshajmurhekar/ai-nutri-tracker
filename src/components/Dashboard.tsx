@@ -13,12 +13,12 @@ import {
 } from '@/lib/api';
 import { supabase } from '@/lib/supabase/client';
 import { buildWeekly, summarizeToday } from '@/lib/aggregate';
-import type { MealLog, Quota } from '@/lib/types';
+import type { MealLog } from '@/lib/types';
 import type { MealType } from '@/lib/constants';
 
+import Footer from './Footer';
 import LogForm from './LogForm';
 import NameSetup from './NameSetup';
-import QuotaIndicator from './QuotaIndicator';
 import SummaryCards from './SummaryCards';
 import WeeklyChart from './WeeklyChart';
 import { ThemeToggle } from './theme';
@@ -28,7 +28,6 @@ export default function Dashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<MeProfile | null>(null);
   const [logs, setLogs] = useState<MealLog[]>([]);
-  const [quota, setQuota] = useState<Quota>({ queries_used_today: 0, daily_limit: 600 });
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function Dashboard() {
         const [me, data] = await Promise.all([fetchMe(t), fetchMeals(t)]);
         setProfile(me);
         setLogs(data.logs);
-        setQuota(data.quota);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : 'Failed to load your data');
       }
@@ -58,7 +56,6 @@ export default function Dashboard() {
         setLogs((prev) =>
           [...prev, res.data.meal].sort((a, b) => a.created_at.localeCompare(b.created_at)),
         );
-        setQuota(res.data.quota);
         return { ok: true };
       }
       return {
@@ -123,11 +120,12 @@ export default function Dashboard() {
         </p>
       ) : (
         <>
-          <QuotaIndicator quota={quota} />
           <SummaryCards today={today} />
           <WeeklyChart week={week} />
         </>
       )}
+
+      <Footer />
     </div>
   );
 }

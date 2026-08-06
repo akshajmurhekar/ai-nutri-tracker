@@ -98,10 +98,11 @@ src/
 
 ### Auth model
 
-The browser holds a Supabase session. Every API call sends
-`Authorization: Bearer <access_token>`. Routes verify the token and build a
-Supabase client bound to that user, so **Postgres RLS** governs all reads and
-writes. The Gemini key never leaves the server.
+The session is stored in **cookies** via `@supabase/ssr` (so users stay logged
+in across browser closes on mobile), and refreshed by the **Proxy** on each
+request. Every API call sends `Authorization: Bearer <access_token>`. Routes
+verify the token and build a Supabase client bound to that user, so **Postgres
+RLS** governs all reads and writes. The Gemini key never leaves the server.
 
 ```
 flowchart LR

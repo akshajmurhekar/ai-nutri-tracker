@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase/client';
+import Footer from '@/components/Footer';
 import { ThemeToggle } from '@/components/theme';
 
 export default function LoginPage() {
@@ -58,11 +59,12 @@ export default function LoginPage() {
     'rounded-xl border border-zinc-300 bg-white px-4 py-3 text-base outline-none transition focus:border-emerald-500/60 focus:ring-4 focus:ring-emerald-500/10 dark:border-zinc-800 dark:bg-zinc-900';
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-6">
+    <main className="relative flex min-h-dvh w-full flex-col overflow-x-hidden">
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
 
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6">
       <div className="mb-8">
         <p className="text-4xl font-bold tracking-tight">Nourish</p>
         <p className="mt-1 text-sm text-zinc-500">Track your meals, hit your macros.</p>
@@ -163,6 +165,9 @@ export default function LoginPage() {
           </>
         )}
       </p>
+      </div>
+
+      <Footer />
     </main>
   );
 }
