@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Nourish · Nutrition Tracker",
   description: "Log meals in plain language and track calories & macros.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-512.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,6 +37,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* PWA / iOS home-screen meta */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Nourish" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

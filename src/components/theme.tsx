@@ -33,6 +33,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
+  // Register the PWA service worker (browser only; production-safe either way).
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        /* service workers unavailable — app still works, just not installable */
+      });
+    }
+  }, []);
+
   const toggle = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   return <ThemeContext.Provider value={{ theme, toggle }}>{children}</ThemeContext.Provider>;
