@@ -60,7 +60,7 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-dvh w-full flex-col overflow-x-hidden">
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-4 top-[max(env(safe-area-inset-top),1rem)]">
         <ThemeToggle />
       </div>
 

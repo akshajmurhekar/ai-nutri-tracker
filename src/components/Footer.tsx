@@ -2,7 +2,7 @@ const REPO_URL = 'https://github.com/akshajmurhekar/ai-nutri-tracker';
 
 export default function Footer() {
   return (
-    <footer className="mx-auto w-full max-w-md px-4 pb-6 pt-2 text-center text-xs text-zinc-400 dark:text-zinc-600">
+    <footer className="mx-auto w-full max-w-md px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-2 text-center text-xs text-zinc-400 dark:text-zinc-600">
       {'We ❤️ open source'} ·{' '}
       <a
         href={REPO_URL}

@@ -82,7 +82,7 @@ export default function Dashboard() {
   const week = buildWeekly(logs, 7);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 py-6">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-[max(env(safe-area-inset-top),1.5rem)]">
       {/* Header */}
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
