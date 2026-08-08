@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  Bar,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,6 +15,9 @@ import {
 import { fetchWeights, logWeight } from '@/lib/api';
 import type { WeightEntry } from '@/lib/types';
 import { useTheme } from './theme';
+
+const CHART_TYPE_KEY = 'nourish-weight-chart-type';
+type ChartType = 'line' | 'bar';
 
 function localDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -39,10 +43,23 @@ export default function WeightCard({ token }: { token: string | null }) {
   const { theme } = useTheme();
   const dark = theme === 'dark';
   const [entries, setEntries] = useState<WeightEntry[]>([]);
+  // Read the persisted line/bar choice lazily. This only runs on the client
+  // (the toggle isn't rendered until data loads after mount), so reading
+  // localStorage here avoids a hydration mismatch.
+  const [chartType, setChartType] = useState<ChartType>(() => {
+    if (typeof window === 'undefined') return 'line';
+    const saved = window.localStorage.getItem(CHART_TYPE_KEY);
+    return saved === 'bar' ? 'bar' : 'line';
+  });
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  function setChartTypeAndSave(t: ChartType) {
+    setChartType(t);
+    if (typeof window !== 'undefined') window.localStorage.setItem(CHART_TYPE_KEY, t);
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -198,9 +215,26 @@ export default function WeightCard({ token }: { token: string | null }) {
             </div>
           </div>
 
-          <div className="mt-4 h-40 w-full">
+          <div className="mt-4 flex items-center justify-end gap-1">
+            {(['line', 'bar'] as ChartType[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setChartTypeAndSave(t)}
+                className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize transition ${
+                  chartType === t
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-2 h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chart} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+              <ComposedChart data={chart} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: axisTick, fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis
@@ -220,16 +254,21 @@ export default function WeightCard({ token }: { token: string | null }) {
                   }}
                   labelStyle={{ color: label, fontWeight: 600 }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Weight"
-                />
+                {chartType === 'bar' && (
+                  <Bar dataKey="weight" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={24} name="Weight" />
+                )}
+                {chartType === 'line' && (
+                  <Line
+                    type="monotone"
+                    dataKey="weight"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Weight"
+                  />
+                )}
                 <Line type="monotone" dataKey="avg7" stroke="#a1a1aa" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="7d avg" />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </>
