@@ -105,7 +105,12 @@ export default function Dashboard() {
       }
       return {
         ok: false,
-        message: res.status === 429 ? `Daily limit reached (${res.quota?.daily_limit ?? 600}/day)` : res.error,
+        message:
+          res.status === 429
+            ? `Daily limit reached (${res.quota?.daily_limit ?? 600}/day)`
+            : res.detail
+              ? `${res.error}: ${res.detail}`
+              : res.error,
       };
     },
     [token],

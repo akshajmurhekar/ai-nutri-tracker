@@ -98,7 +98,14 @@ export async function deleteMeal(token: string, id: string): Promise<void> {
 
 export type LogFoodResult =
   | { ok: true; data: LogFoodSuccess }
-  | { ok: false; status: number; error: string; rejectionReason?: string | null; quota?: Quota };
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      rejectionReason?: string | null;
+      quota?: Quota;
+      detail?: string | null;
+    };
 
 export async function logFood(
   token: string,
@@ -137,5 +144,6 @@ export async function logFood(
     error: typeof err.error === 'string' ? err.error : 'Something went wrong',
     rejectionReason: typeof err.rejection_reason === 'string' ? err.rejection_reason : null,
     quota: err.quota as Quota | undefined,
+    detail: typeof err.detail === 'string' ? err.detail : null,
   };
 }

@@ -128,7 +128,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (insertError || !meal) {
-    return NextResponse.json({ error: 'Failed to save meal' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to save meal', detail: insertError?.message ?? null },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json(
