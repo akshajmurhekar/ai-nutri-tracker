@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -15,6 +15,12 @@ import {
 import { supabase } from '@/lib/supabase/client';
 import { buildWeekly, summarizeToday } from '@/lib/aggregate';
 import { getCachedName, setCachedName } from '@/lib/storage';
+import {
+  computeMostEaten,
+  getCachedMostEaten,
+  setCachedMostEaten,
+  type MostEatenMap,
+} from '@/lib/mostEaten';
 import type { MealLog } from '@/lib/types';
 import type { MealType } from '@/lib/constants';
 
@@ -34,6 +40,10 @@ export default function Dashboard() {
   // network confirm it. Avoids the "Hi friend → Hi <name>" flash.
   const [displayName, setDisplayName] = useState<string | null>(() => getCachedName());
   const [logs, setLogs] = useState<MealLog[]>([]);
+  // Seed from cache so "most eaten" pills render instantly, then recompute
+  // once the network logs arrive.
+  const [mostEaten, setMostEaten] = useState<MostEatenMap | null>(() => getCachedMostEaten());
+  const logsRef = useRef<MealLog[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,11 +71,17 @@ export default function Dashboard() {
       }
 
       try {
-        const [me, data] = await Promise.all([fetchMe(t), fetchMeals(t)]);
+        // 90 days of history so "most eaten" reflects real repeats; today/week
+        // aggregations filter by date so they're unaffected by the wider fetch.
+        const [me, data] = await Promise.all([fetchMe(t), fetchMeals(t, 90)]);
         setProfile(me);
         setDisplayName(me.name);
         setCachedName(me.name);
+        logsRef.current = data.logs;
         setLogs(data.logs);
+        const m = computeMostEaten(data.logs);
+        setMostEaten(m);
+        setCachedMostEaten(m);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : 'Failed to load your data');
       }
@@ -77,9 +93,14 @@ export default function Dashboard() {
       if (!token) return { ok: false };
       const res = await logFood(token, mealType, rawText);
       if (res.ok) {
-        setLogs((prev) =>
-          [...prev, res.data.meal].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+        const next = [...logsRef.current, res.data.meal].sort((a, b) =>
+          a.created_at.localeCompare(b.created_at),
         );
+        logsRef.current = next;
+        setLogs(next);
+        const m = computeMostEaten(next);
+        setMostEaten(m);
+        setCachedMostEaten(m);
         return { ok: true };
       }
       return {
@@ -145,7 +166,7 @@ export default function Dashboard() {
         <NameSetup email={profile.email} onSaved={handleNameSaved} />
       )}
 
-      <LogForm onLogged={handleLogged} />
+      <LogForm onLogged={handleLogged} mostEaten={mostEaten} />
 
       {loadError ? (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">

@@ -13,6 +13,7 @@ export interface ParsedMeal {
   is_food: boolean;
   rejection_reason: string | null;
   description: string | null;
+  short_name: string | null;
   calories: number | null;
   protein: number | null;
   carbs: number | null;
@@ -32,6 +33,7 @@ const RESPONSE_SCHEMA: Schema = {
     is_food: { type: SchemaType.BOOLEAN, description: 'true if the entry is food or drink a human could consume' },
     rejection_reason: { type: SchemaType.STRING, description: 'short human-readable reason when is_food is false, otherwise omit' },
     description: { type: SchemaType.STRING, description: 'a short clean label naming the meal, e.g. "Matar paneer with 3 rotis"; omit when is_food is false' },
+    short_name: { type: SchemaType.STRING, description: 'a short, stable canonical base name for the meal, e.g. "100mL chai", "rice and roti", "250g rice". Keep a leading amount when it is a single food and the amount is key; for multi-food meals drop amounts and just list the foods; drop qualifiers like "with milk and sugar". 1-5 words; omit when is_food is false' },
     calories: { type: SchemaType.NUMBER, description: 'total kcal, omit when is_food is false' },
     protein: { type: SchemaType.NUMBER, description: 'total grams of protein, omit when is_food is false' },
     carbs: { type: SchemaType.NUMBER, description: 'total grams of carbohydrates, omit when is_food is false' },
@@ -51,6 +53,13 @@ RULES:
 
 DESCRIPTION:
 - Whenever "is_food" is true, also set "description" to a short, clean, human-friendly label of the meal (e.g. "Matar paneer with 3 rotis", "2 boiled eggs and a cup of curd"). Do not just repeat the raw input verbatim; tidy it up while keeping it accurate. One sentence, 2-12 words.
+
+SHORT_NAME:
+- Whenever "is_food" is true, also set "short_name" to a short, STABLE canonical base name that lets this meal be grouped with the same meal logged again. It should ignore incidental wording and focus on what the meal IS:
+  - For a single food, keep a leading amount when that amount is the key differentiator (e.g. "100mL chai", "250g rice", "3 roti").
+  - For a multi-food meal, drop the amounts and just list the foods, short and joined (e.g. "2 roti, 150g rice" -> "rice and roti").
+  - Drop qualifiers like "with milk and sugar", "with curry", or spices unless they change the identity of the meal.
+  - Use consistent wording/full capitalization across identical meals so later logs collapse onto the same name. 1-5 words. Never repeat the raw input verbatim.
 
 MACRO ESTIMATION:
 - Estimate realistic totals for a normal adult portion of the described meal — match what a real nutrition-tracking app (MyFitnessPal/Chronometer) would report. Do NOT under-estimate.
@@ -116,6 +125,7 @@ function parseJsonMeal(text: string): ParsedMeal {
       is_food: false,
       rejection_reason: (o.rejection_reason as string | null) ?? 'Not recognized as food or drink',
       description: null,
+      short_name: null,
       calories: null,
       protein: null,
       carbs: null,
@@ -137,10 +147,16 @@ function parseJsonMeal(text: string): ParsedMeal {
       ? o.description.trim().slice(0, 120)
       : null;
 
+  const short_name =
+    typeof o.short_name === 'string' && o.short_name.trim()
+      ? o.short_name.trim().slice(0, 80)
+      : null;
+
   return {
     is_food: true,
     rejection_reason: null,
     description,
+    short_name,
     calories: cap(num(o.calories), MACRO_LIMITS.calories),
     protein: cap(num(o.protein), MACRO_LIMITS.protein),
     carbs: cap(num(o.carbs), MACRO_LIMITS.carbs),

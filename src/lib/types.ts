@@ -7,6 +7,7 @@ export interface MealLog {
   meal_type: MealType;
   raw_text: string;
   description: string | null;
+  short_name: string | null;
   calories: number;
   protein: number;
   carbs: number;

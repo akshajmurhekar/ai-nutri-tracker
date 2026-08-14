@@ -3,17 +3,35 @@
 import { FormEvent, useRef, useState } from 'react';
 
 import { MEAL_TYPES, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, MAX_RAW_TEXT, type MealType } from '@/lib/constants';
+import type { MostEatenMap, Suggestion } from '@/lib/mostEaten';
 
 interface LogFormProps {
   onLogged: (mealType: MealType, rawText: string) => Promise<{ ok: boolean; message?: string }>;
+  /** "Most eaten" suggestions per meal type (from cache, then recomputed). */
+  mostEaten?: MostEatenMap | null;
 }
 
-export default function LogForm({ onLogged }: LogFormProps) {
+export default function LogForm({ onLogged, mostEaten }: LogFormProps) {
   const [mealType, setMealType] = useState<MealType>('lunch');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Pills are per meal type, shown for whichever meal the user has selected.
+  const suggested: Suggestion[] = mostEaten?.[mealType] ?? [];
+
+  /** Tap a pill → paste its full original text, then type any extras. */
+  function applySuggestion(s: Suggestion) {
+    setText((prev) => {
+      const base = prev.trim();
+      if (!base) return s.rawText;
+      // Avoid duplicating an identical suggestion already in the field.
+      if (base.toLowerCase().includes(s.rawText.toLowerCase())) return prev;
+      return `${base} ${s.rawText}`;
+    });
+    inputRef.current?.focus();
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -77,6 +95,16 @@ export default function LogForm({ onLogged }: LogFormProps) {
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
         />
+        {text && (
+          <button
+            type="button"
+            onClick={() => setText('')}
+            aria-label="Clear entry"
+            className="shrink-0 rounded-lg px-2 py-1 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200"
+          >
+            ✕
+          </button>
+        )}
         <button
           type="submit"
           disabled={busy || !text.trim()}
@@ -85,6 +113,25 @@ export default function LogForm({ onLogged }: LogFormProps) {
           {busy ? '…' : 'Log'}
         </button>
       </div>
+
+      {/* Most-eaten quick-paste pills (per selected meal type) */}
+      {suggested.length > 0 && (
+        <div className="-mt-1 flex flex-wrap items-center gap-2">
+          {suggested.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => applySuggestion(s)}
+              disabled={busy}
+              title={`Paste: ${s.rawText}`}
+              className="flex max-w-full items-center gap-1 rounded-full border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              <span className="shrink-0 font-semibold text-emerald-600 dark:text-emerald-400">+</span>
+              <span className="truncate">{s.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 text-xs text-zinc-500">
         <span
