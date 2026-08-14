@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
       raw_text,
       description: parsed.description,
       short_name: parsed.short_name,
+      components: parsed.components,
       calories: parsed.calories,
       protein: parsed.protein,
       carbs: parsed.carbs,

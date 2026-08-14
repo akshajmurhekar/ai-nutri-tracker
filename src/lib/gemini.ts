@@ -14,6 +14,7 @@ export interface ParsedMeal {
   rejection_reason: string | null;
   description: string | null;
   short_name: string | null;
+  components: string[] | null;
   calories: number | null;
   protein: number | null;
   carbs: number | null;
@@ -34,6 +35,7 @@ const RESPONSE_SCHEMA: Schema = {
     rejection_reason: { type: SchemaType.STRING, description: 'short human-readable reason when is_food is false, otherwise omit' },
     description: { type: SchemaType.STRING, description: 'a short clean label naming the meal, e.g. "Matar paneer with 3 rotis"; omit when is_food is false' },
     short_name: { type: SchemaType.STRING, description: 'a short, stable canonical base name for the meal, e.g. "100mL chai", "rice and roti", "250g rice". Keep a leading amount when it is a single food and the amount is key; for multi-food meals drop amounts and just list the foods; drop qualifiers like "with milk and sugar". 1-5 words; omit when is_food is false' },
+    components: { type: SchemaType.ARRAY, description: 'the meal broken into its distinct food items, each WITH its amount/unit but WITHOUT conjunctions or descriptors, in the order they appear. e.g. ["2 rotis", "150g rice", "matar paneer"] for "2 rotis, 150g rice and matar paneer", or ["100mL chai", "milk", "sugar"]. Always include every distinct item; omit when is_food is false', items: { type: SchemaType.STRING }, minItems: 1 },
     calories: { type: SchemaType.NUMBER, description: 'total kcal, omit when is_food is false' },
     protein: { type: SchemaType.NUMBER, description: 'total grams of protein, omit when is_food is false' },
     carbs: { type: SchemaType.NUMBER, description: 'total grams of carbohydrates, omit when is_food is false' },
@@ -60,6 +62,12 @@ SHORT_NAME:
   - For a multi-food meal, drop the amounts and just list the foods, short and joined (e.g. "2 roti, 150g rice" -> "rice and roti").
   - Drop qualifiers like "with milk and sugar", "with curry", or spices unless they change the identity of the meal.
   - Use consistent wording/full capitalization across identical meals so later logs collapse onto the same name. 1-5 words. Never repeat the raw input verbatim.
+
+COMPONENTS:
+- Whenever "is_food" is true, also set "components" to the meal broken into its DISTINCT food items for frequency analysis.
+  - Each item keeps its amount/unit but drops conjunctions and descriptors (e.g. "2 rotis, 150g rice and matar paneer" -> ["2 rotis", "150g rice", "matar paneer"]; "100mL chai with milk and sugar" -> ["100mL chai", "milk", "sugar"]).
+  - Include EVERY distinct edible item in the meal, in the order it appears.
+  - Use consistent names across identical items (same capitalization/wording) so that "2 rotis" vs "2 roti" vs "rotis" collapse to one entry.
 
 MACRO ESTIMATION:
 - Estimate realistic totals for a normal adult portion of the described meal — match what a real nutrition-tracking app (MyFitnessPal/Chronometer) would report. Do NOT under-estimate.
@@ -126,6 +134,7 @@ function parseJsonMeal(text: string): ParsedMeal {
       rejection_reason: (o.rejection_reason as string | null) ?? 'Not recognized as food or drink',
       description: null,
       short_name: null,
+      components: null,
       calories: null,
       protein: null,
       carbs: null,
@@ -152,11 +161,20 @@ function parseJsonMeal(text: string): ParsedMeal {
       ? o.short_name.trim().slice(0, 80)
       : null;
 
+  // Components arrive as an array of strings; defensively coerce and truncate.
+  const components = Array.isArray(o.components)
+    ? o.components
+        .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        .map((c) => c.trim().slice(0, 60))
+        .slice(0, 10)
+    : [];
+
   return {
     is_food: true,
     rejection_reason: null,
     description,
     short_name,
+    components: components.length > 0 ? components : null,
     calories: cap(num(o.calories), MACRO_LIMITS.calories),
     protein: cap(num(o.protein), MACRO_LIMITS.protein),
     carbs: cap(num(o.carbs), MACRO_LIMITS.carbs),
