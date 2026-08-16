@@ -219,7 +219,7 @@ First compute BMR using the Mifflin-St Jeor equation:
   male:   BMR = 10*weight_kg + 6.25*height_cm - 5*age + 5
   female: BMR = 10*weight_kg + 6.25*height_cm - 5*age - 161
 
-Then compute TDEE by scaling BMR for a person who is lightly active through the day (moving around at home, doing daily-life activities, walking around the house) but does NOT include any structured exercise — exercise is tracked and added separately in the app. Use an appropriate low-to-moderate activity multiplier (roughly 1.2-1.4).
+Then compute TDEE by scaling BMR for a SEDENTARY person — moving around at home and doing ordinary daily-life activities only (little to no standing/walking through the day), with NO structured exercise (exercise is tracked separately and added in the app). Use a SEDENTARY activity multiplier of ~1.2 (keep it between 1.15 and 1.25 — do not go higher).
 
 Rules:
 - Round BMR and TDEE to whole numbers.
