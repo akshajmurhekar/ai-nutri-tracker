@@ -12,6 +12,7 @@ import {
 
 import { MEAL_TYPES, MEAL_TYPE_COLORS, MEAL_TYPE_LABELS, type MealType } from '@/lib/constants';
 import type { DayBreakdown } from '@/lib/aggregate';
+import { kcalTick } from '@/lib/format';
 import { useTheme } from './theme';
 
 export default function WeeklyChart({ week }: { week: DayBreakdown[] }) {
@@ -26,7 +27,10 @@ export default function WeeklyChart({ week }: { week: DayBreakdown[] }) {
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Last 7 days</h2>
+        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          Last 7 days{' '}
+          <span className="text-xs font-normal text-zinc-400 dark:text-zinc-500">(kcal)</span>
+        </h2>
         <ul className="flex flex-wrap gap-3">
           {MEAL_TYPES.map((t: MealType) => (
             <li key={t} className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
@@ -52,6 +56,7 @@ export default function WeeklyChart({ week }: { week: DayBreakdown[] }) {
             />
             <YAxis
               tick={{ fill: axisTick, fontSize: 12 }}
+              tickFormatter={kcalTick}
               axisLine={false}
               tickLine={false}
               width={40}

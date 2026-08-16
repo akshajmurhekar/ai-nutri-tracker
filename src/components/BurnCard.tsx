@@ -14,6 +14,7 @@ import {
 import { fetchBurn, logGymCalories } from '@/lib/api';
 import type { BurnResponse, EnergyDay } from '@/lib/types';
 import type { DayBreakdown } from '@/lib/aggregate';
+import { kcalTick } from '@/lib/format';
 import { useTheme } from './theme';
 import BurnSetup from './BurnSetup';
 
@@ -183,7 +184,8 @@ export default function BurnCard({
     <section className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          Calories burned 🔥
+          Calories burned 🔥{' '}
+          <span className="text-xs font-normal text-zinc-400 dark:text-zinc-500">(kcal)</span>
         </h2>
         {today && (
           <span className="text-xs text-zinc-500">
@@ -245,7 +247,13 @@ export default function BurnCard({
           <BarChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
             <XAxis dataKey="label" tick={{ fill: axisTick, fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: axisTick, fontSize: 11 }} axisLine={false} tickLine={false} width={42} />
+            <YAxis
+              tick={{ fill: axisTick, fontSize: 11 }}
+              tickFormatter={kcalTick}
+              axisLine={false}
+              tickLine={false}
+              width={42}
+            />
             <Tooltip
               cursor={{ fill: dark ? '#27272a' : '#f4f4f5' }}
               contentStyle={{
