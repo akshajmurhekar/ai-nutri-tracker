@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { deleteMeal, fetchMeals, getAccessToken } from '@/lib/api';
+import { deleteGymCalories, deleteMeal, fetchBurnLogs, fetchMeals, getAccessToken } from '@/lib/api';
 import { supabase } from '@/lib/supabase/client';
 import { localDayKey } from '@/lib/aggregate';
 import { MEAL_TYPE_COLORS, type MealType } from '@/lib/constants';
-import type { MealLog } from '@/lib/types';
+import type { BurnLogEntry, MealLog } from '@/lib/types';
 
 import Footer from '@/components/Footer';
 import MealDetailModal from '@/components/MealDetailModal';
@@ -19,14 +19,17 @@ interface DayGroup {
   label: string;
   calories: number;
   meals: MealLog[];
+  gymCalories: number;
 }
 
 export default function HistoryPage() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [logs, setLogs] = useState<MealLog[]>([]);
+  const [gymEntries, setGymEntries] = useState<BurnLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deletingGym, setDeletingGym] = useState<string | null>(null);
   const [selected, setSelected] = useState<MealLog | null>(null);
 
   useEffect(() => {
@@ -38,8 +41,9 @@ export default function HistoryPage() {
       }
       setToken(t);
       try {
-        const data = await fetchMeals(t, 30);
+        const [data, gym] = await Promise.all([fetchMeals(t, 30), fetchBurnLogs(t, 30)]);
         setLogs(data.logs);
+        setGymEntries(gym);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load your history');
       }
@@ -58,14 +62,30 @@ export default function HistoryPage() {
           label: d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
           calories: 0,
           meals: [],
+          gymCalories: 0,
         };
         byKey.set(key, g);
       }
       g.meals.push(m);
       g.calories += Number(m.calories);
     }
+    for (const e of gymEntries) {
+      let g = byKey.get(e.date);
+      if (!g) {
+        const d = new Date(e.date + 'T00:00:00');
+        g = {
+          key: e.date,
+          label: d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+          calories: 0,
+          meals: [],
+          gymCalories: 0,
+        };
+        byKey.set(e.date, g);
+      }
+      g.gymCalories = Number(e.gym_calories);
+    }
     return [...byKey.values()].sort((a, b) => b.key.localeCompare(a.key));
-  }, [logs]);
+  }, [logs, gymEntries]);
 
   async function handleDelete(id: string) {
     if (!token) return;
@@ -79,6 +99,20 @@ export default function HistoryPage() {
       setError(e instanceof Error ? e.message : 'Could not delete entry');
     } finally {
       setDeleting(null);
+    }
+  }
+
+  async function handleDeleteGym(date: string) {
+    if (!token) return;
+    if (!window.confirm('Remove this day\'s gym calories?')) return;
+    setDeletingGym(date);
+    try {
+      await deleteGymCalories(token, date);
+      setGymEntries((prev) => prev.filter((e) => e.date !== date));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not remove gym calories');
+    } finally {
+      setDeletingGym(null);
     }
   }
 
@@ -154,6 +188,30 @@ export default function HistoryPage() {
                   <span className="shrink-0 text-zinc-400">›</span>
                 </button>
               ))}
+
+              {g.gymCalories > 0 && (
+                <div className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-left dark:border-zinc-800 dark:bg-zinc-900">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      Gym activity
+                    </p>
+                    <p className="text-xs text-zinc-500">calories burned</p>
+                  </div>
+                  <span className="shrink-0 text-sm tabular-nums text-zinc-600 dark:text-zinc-300">
+                    {g.gymCalories} kcal
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteGym(g.key)}
+                    disabled={deletingGym === g.key}
+                    aria-label="Remove gym calories"
+                    className="shrink-0 rounded-lg p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-red-500 disabled:opacity-50 dark:hover:bg-zinc-800"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         ))

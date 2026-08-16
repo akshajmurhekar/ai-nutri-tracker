@@ -60,6 +60,12 @@ export interface BurnMetrics {
   gender: 'male' | 'female' | null;
 }
 
+/** A day that had gym calories logged (for the History tab). */
+export interface BurnLogEntry {
+  date: string; // yyyy-mm-dd
+  gym_calories: number;
+}
+
 export interface ApiError {
   status: number;
   error: string;

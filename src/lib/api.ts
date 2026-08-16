@@ -1,4 +1,4 @@
-import type { BurnResponse, EnergyDay, LogFoodSuccess, MealsResponse, Quota, WeightEntry } from './types';
+import type { BurnLogEntry, BurnResponse, EnergyDay, LogFoodSuccess, MealsResponse, Quota, WeightEntry } from './types';
 import { supabase } from './supabase/client';
 
 /** Current access token, or null when signed out. */
@@ -172,6 +172,31 @@ export async function logGymCalories(token: string, gymCalories: number): Promis
     throw new Error(data?.error ?? 'Could not save gym calories');
   }
   return data.day;
+}
+
+/** GET /api/burn/logs — gym-calorie entries (for the History tab). */
+export async function fetchBurnLogs(token: string, days = 30): Promise<BurnLogEntry[]> {
+  const res = await fetch(`/api/burn/logs?days=${days}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error((await res.json().catch(() => ({})))?.error ?? 'Failed to load burn entries');
+  }
+  const data = (await res.json()) as { entries?: BurnLogEntry[] };
+  return data.entries ?? [];
+}
+
+/** DELETE /api/burn/logs — remove a day's gym calories (burned reverts to TDEE). */
+export async function deleteGymCalories(token: string, date: string): Promise<void> {
+  const res = await fetch('/api/burn/logs', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ date }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Could not remove gym calories');
+  }
 }
 
 /** POST /api/me/metrics — save voluntary height/birth date/gender for TDEE. */
