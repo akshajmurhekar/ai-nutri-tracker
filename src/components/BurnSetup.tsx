@@ -88,7 +88,10 @@ export default function BurnSetup({
               type="date"
               value={birth}
               onChange={(e) => setBirth(e.target.value)}
-              className={`${inputCls} mt-1 w-full`}
+              // appearance-none lets width:100% win on iOS/WebKit (the native
+              // date control otherwise has a built-in min-width that bleeds out
+              // of the card); the picker still opens on tap.
+              className={`${inputCls} mt-1 w-full min-w-0 appearance-none`}
             />
           </label>
         </div>
