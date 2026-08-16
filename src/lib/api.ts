@@ -1,4 +1,4 @@
-import type { LogFoodSuccess, MealsResponse, Quota, WeightEntry } from './types';
+import type { BurnResponse, EnergyDay, LogFoodSuccess, MealsResponse, Quota, WeightEntry } from './types';
 import { supabase } from './supabase/client';
 
 /** Current access token, or null when signed out. */
@@ -25,6 +25,7 @@ export interface MeProfile {
   name: string;
   email: string;
   needsName: boolean;
+  needsMetrics: boolean;
 }
 
 export async function fetchMe(token: string): Promise<MeProfile> {
@@ -146,4 +147,46 @@ export async function logFood(
     quota: err.quota as Quota | undefined,
     detail: typeof err.detail === 'string' ? err.detail : null,
   };
+}
+
+/** GET /api/burn — daily calories-burned window (also triggers lazy TDEE refresh). */
+export async function fetchBurn(token: string, days = 7): Promise<BurnResponse> {
+  const res = await fetch(`/api/burn?days=${days}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error((await res.json().catch(() => ({})))?.error ?? 'Failed to load burn data');
+  }
+  return res.json();
+}
+
+/** POST /api/burn — log today's gym calories; returns the updated EnergyDay. */
+export async function logGymCalories(token: string, gymCalories: number): Promise<EnergyDay> {
+  const res = await fetch('/api/burn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ gym_calories: gymCalories }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error ?? 'Could not save gym calories');
+  }
+  return data.day;
+}
+
+/** POST /api/me/metrics — save voluntary height/birth date/gender for TDEE. */
+export async function saveMetrics(
+  token: string,
+  metrics: { height_cm: number; birth_date: string; gender: 'male' | 'female' },
+): Promise<{ hasMetrics: boolean }> {
+  const res = await fetch('/api/me/metrics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(metrics),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error ?? 'Could not save your metrics');
+  }
+  return data;
 }

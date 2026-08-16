@@ -14,8 +14,15 @@ tracking calories & macros. Built with **Next.js (App Router, TS, Tailwind)**,
   rejected with `400` and never logged.
 - **Quota protection** — hard cap of **600 AI queries/user/day**, enforced
   atomically in Postgres before the model is called (`429` when exhausted).
+- **Weight tracking** — one entry per day (re-logging overwrites), with 7-day
+  average, 30-day trend, and a chart with a dashed 7-day-average overlay.
+- **Calories burned (energy balance)** — *optional*: give your height, birth
+  date and gender once and the app estimates a daily TDEE baseline (refreshed
+  weekly as your weight changes). Log optional gym calories on top, then compare
+  **calories eaten vs burned** each day on a grouped bar chart to see if you're
+  on track for weight loss.
 - **Dashboard** — today's calorie/macro summary cards, a 7-day calorie chart
-  stacked by meal type, and a remaining-queries indicator.
+  stacked by meal type, the weight card, and the calories-burned comparison.
 
 ## Stack
 
@@ -37,6 +44,11 @@ tracking calories & macros. Built with **Next.js (App Router, TS, Tailwind)**,
    adds the `increment_quota_if_within_limit` RPC (atomic quota check + increment).
 3. Then, in the SQL Editor, run [`supabase/invite_flow.sql`](./supabase/invite_flow.sql)
    to add the `profiles` table (stores each user's display name for the greeting).
+
+> Upgrading an existing database? Run the relevant `supabase/migrate_*.sql`
+> files (e.g. [`supabase/migrate_burn.sql`](./supabase/migrate_burn.sql) for the
+> calories-burned feature) in the SQL Editor — they're idempotent and safe to re-run.
+> **Run the migration BEFORE deploying the code that reads the new column/table.**
 
 ### Invite-only (email + password)
 
@@ -91,9 +103,12 @@ src/
 │  ├─ login/page.tsx         # Sign in / request invite
 │  └─ api/
 │     ├─ log-food/route.ts   # POST: quota → Gemini(JSON) → insert meal
-│     └─ meals/route.ts      # GET: recent meals + quota
-├─ components/               # LogForm, SummaryCards, WeeklyChart, QuotaIndicator, Dashboard
-└─ lib/                      # supabase client, auth, gemini parser, aggregate, constants, types
+│     ├─ meals/route.ts      # GET: recent meals + DELETE
+│     ├─ me/route.ts         # GET/PATCH: profile name; me/metrics saves burn metrics
+│     ├─ weight/route.ts     # GET/POST: daily weight (upsert)
+│     └─ burn/route.ts       # GET: lazy weekly TDEE refresh + readings; POST: gym calories
+├─ components/               # LogForm, SummaryCards, WeeklyChart, BurnCard, WeightCard, ...
+└─ lib/                      # supabase client, auth, gemini parser/estimator, aggregate, constants, types
 ```
 
 ### Auth model

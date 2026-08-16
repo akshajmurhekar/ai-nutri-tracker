@@ -38,6 +38,28 @@ export interface LogFoodSuccess {
   quota: Quota;
 }
 
+/** One calendar day's energy-expenditure row (from `energy_logs`). */
+export interface EnergyDay {
+  date: string; // yyyy-mm-dd
+  bmr: number | null;
+  tdee: number | null;
+  gym_calories: number;
+  /** tdee + gym_calories (0 when no baseline yet). */
+  total_burned: number;
+}
+
+export interface BurnResponse {
+  hasMetrics: boolean;
+  tdeeUpdatedAt: string | null;
+  days: EnergyDay[];
+}
+
+export interface BurnMetrics {
+  height_cm: number | null;
+  birth_date: string | null;
+  gender: 'male' | 'female' | null;
+}
+
 export interface ApiError {
   status: number;
   error: string;

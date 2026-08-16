@@ -24,6 +24,7 @@ import {
 import type { MealLog } from '@/lib/types';
 import type { MealType } from '@/lib/constants';
 
+import BurnCard from './BurnCard';
 import Footer from './Footer';
 import LogForm from './LogForm';
 import NameSetup from './NameSetup';
@@ -181,6 +182,7 @@ export default function Dashboard() {
         <>
           <SummaryCards today={today} />
           <WeeklyChart week={week} />
+          <BurnCard token={token} week={week} />
           <WeightCard token={token} />
         </>
       )}

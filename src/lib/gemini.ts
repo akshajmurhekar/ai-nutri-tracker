@@ -4,7 +4,7 @@ import {
   type Schema,
 } from '@google/generative-ai';
 
-import { MACRO_LIMITS } from './constants';
+import { MACRO_LIMITS, ENERGY_LIMITS } from './constants';
 
 /**
  * Result of parsing a meal entry. Mirrors the Gemini structured-output schema.
@@ -181,3 +181,110 @@ function parseJsonMeal(text: string): ParsedMeal {
     fat: cap(num(o.fat), MACRO_LIMITS.fat),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Energy expenditure (TDEE) estimation
+// ---------------------------------------------------------------------------
+
+export interface EnergyEstimate {
+  bmr: number;
+  tdee: number;
+}
+
+export interface EnergyParams {
+  ageYears: number;
+  gender: 'male' | 'female';
+  heightCm: number;
+  weightKg: number;
+}
+
+const ENERGY_SCHEMA: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    bmr: {
+      type: SchemaType.NUMBER,
+      description: 'Basal Metabolic Rate in kcal/day (Mifflin-St Jeor) for this person',
+    },
+    tdee: {
+      type: SchemaType.NUMBER,
+      description: 'Total Daily Energy Expenditure in kcal/day: BMR scaled for moving around at home and ordinary daily-life activity, with NO structured exercise included',
+    },
+  },
+  required: ['bmr', 'tdee'],
+};
+
+const ENERGY_PROMPT = `You are a fitness/science calculator. Given a person's age (whole years), sex, height (cm), and current weight (kg), estimate their daily energy expenditure.
+
+First compute BMR using the Mifflin-St Jeor equation:
+  male:   BMR = 10*weight_kg + 6.25*height_cm - 5*age + 5
+  female: BMR = 10*weight_kg + 6.25*height_cm - 5*age - 161
+
+Then compute TDEE by scaling BMR for a person who is lightly active through the day (moving around at home, doing daily-life activities, walking around the house) but does NOT include any structured exercise — exercise is tracked and added separately in the app. Use an appropriate low-to-moderate activity multiplier (roughly 1.2-1.4).
+
+Rules:
+- Round BMR and TDEE to whole numbers.
+- These are estimates to power a daily weight-loss comparison chart, so be realistic and consistent, not extreme.
+- Use the Mifflin-St Jeor formula exactly for BMR.`;
+
+/**
+ * Calls Gemini for a BMR/TDEE estimate. Throws on model/parse failure so callers
+ * can decide how to degrade (the burn refresh is best-effort).
+ */
+export async function estimateEnergy(params: EnergyParams): Promise<EnergyEstimate> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    generationConfig: {
+      temperature: 0.4,
+      responseMimeType: 'application/json',
+      responseSchema: ENERGY_SCHEMA,
+    },
+  });
+
+  const result = await model.generateContent([
+    ENERGY_PROMPT,
+    `Person: age ${params.ageYears} years, sex ${params.gender}, height ${params.heightCm} cm, weight ${params.weightKg} kg.`,
+  ]);
+
+  return parseEnergyEstimate(result.response.text());
+}
+
+/** Tolerant parser that clamps out-of-range estimates (so one bad reply can't corrupt rows). */
+function parseEnergyEstimate(text: string): EnergyEstimate {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    throw new Error('Gemini returned invalid JSON for energy estimate');
+  }
+
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('Gemini returned an unexpected shape for energy estimate');
+  }
+
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown): number | null => {
+    const n =
+      typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const clamp = (n: number | null, { min, max }: { min: number; max: number }): number | null =>
+    n === null ? null : Math.min(Math.max(Math.round(n), min), max);
+
+  const bmr = clamp(num(o.bmr), ENERGY_LIMITS.bmr);
+  const tdee = clamp(num(o.tdee), ENERGY_LIMITS.tdee);
+
+  // Both must be present and sane; otherwise treat as a failed call.
+  if (bmr === null || tdee === null || tdee < bmr) {
+    throw new Error('Gemini returned an invalid energy estimate');
+  }
+
+  return { bmr, tdee };
+}
+

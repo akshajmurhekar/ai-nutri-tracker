@@ -20,12 +20,17 @@ and protects `/` and `/history`.
 - `src/app/api/log-food/route.ts` — auth → atomic quota RPC → Gemini → insert.
 - `src/app/api/meals/route.ts` — GET (with `?days=N`) + DELETE (RLS-scoped) .
 - `src/app/api/me/route.ts` — profile (name) GET/PATCH.
+- `src/app/api/burn/route.ts` — calories-burned: GET = lazy weekly TDEE refresh + read window;
+  POST = log gym calories. `src/app/api/me/metrics/route.ts` — save voluntary height/birth date/gender.
 - `src/lib/gemini.ts` — prompt + structured-output schema (also returns a clean
   `description`). `src/lib/constants.ts` has meal types/colors/limits.
-- `src/components/Dashboard.tsx` — dashboard (greeting, log form, summary, chart).
+- `src/components/Dashboard.tsx` — dashboard (greeting, log form, summary, weight, burn charts).
+- `src/components/BurnCard.tsx` — daily calories-burned chart (grouped **eaten vs burned** bars,
+  gym-calories input, blurred `BurnTeaser` first-run flow). `src/components/BurnSetup.tsx` — voluntary
+  metrics form (height/birth date/gender). Reads `/api/burn` on mount → lazy weekly TDEE refresh.
 - `src/app/history/page.tsx` — day-grouped history with delete.
 - `src/proxy.ts`, `src/lib/supabase/{client,server}.ts` — auth plumbing.
-- `supabase/*.sql` — schema; run `migrate_description.sql` on existing DBs.
+- `supabase/*.sql` — schema; run `migrate_description.sql` + `migrate_burn.sql` on existing DBs.
 
 ### Decisions made (don't re-litigate)
 - gemini-2.5-flash-lite is **retired** for new accounts → use 3.1-flash-lite.
@@ -33,6 +38,10 @@ and protects `/` and `/history`.
   RPC but **not shown** in the UI.
 - Greeting name is cached client-side (`src/lib/storage.ts`) for instant load.
 - PWA installed (manifest/SW/icons); iOS safe-area insets respected.
+- Calories-burned (TDEE): **voluntary**, asked once; blurred teaser → form → chart. TDEE refreshes
+  **lazily & throttled to once/week** (`get /api/burn`) and is the **only allowed read-path Gemini call**
+  (still burns quota via the RPC; best-effort on failure). Gym calories are a **plain number** (no
+  Gemini). See ONBOARDING §13.
 - `project-notes.md` is **git-ignored** — local-only roadmap (cache-then-refetch,
   optimistic writes, SW caching). Do NOT commit it.
 

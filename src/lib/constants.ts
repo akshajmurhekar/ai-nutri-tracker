@@ -26,3 +26,16 @@ export const MACRO_LIMITS = {
   carbs: 5000,
   fat: 2000,
 } as const;
+
+/** Calories-burned / TDEE feature. */
+/** How often (in days) a user's TDEE is recomputed from their weekly weight. */
+export const ENERGY_REFRESH_DAYS = 7;
+/** Number of calendar days the burn dashboard shows / backfills. */
+export const ENERGY_WINDOW_DAYS = 7;
+/** Gym calories logged on top of TDEE are capped at this many kcal/day. */
+export const MAX_GYM_CALORIES = 5000;
+/** Caps on Gemini's BMR/TDEE estimate so one bad reply can't corrupt rows. */
+export const ENERGY_LIMITS = {
+  bmr: { min: 800, max: 5000 },
+  tdee: { min: 900, max: 7000 },
+} as const;

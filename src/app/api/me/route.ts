@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     name: profile.display_name ?? fallback,
     email,
     needsName: !profile.display_name,
+    needsMetrics: !profile.height_cm || !profile.birth_date || !profile.gender,
   });
 }
 

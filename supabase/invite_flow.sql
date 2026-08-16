@@ -6,10 +6,15 @@
 -- ============================================================================
 
 create table if not exists public.profiles (
-  user_id      uuid primary key references auth.users (id) on delete cascade,
-  email        text        not null,
-  display_name text,
-  created_at   timestamptz not null default now()
+  user_id          uuid primary key references auth.users (id) on delete cascade,
+  email            text        not null,
+  display_name     text,
+  -- voluntary metrics for the calories-burned (TDEE) feature
+  height_cm        numeric,
+  birth_date       date,
+  gender           text,
+  tdee_updated_at  timestamptz,
+  created_at       timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;
