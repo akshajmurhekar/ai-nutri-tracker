@@ -4,24 +4,26 @@ import { FormEvent, useState } from 'react';
 
 import { saveMetrics } from '@/lib/api';
 
-const DISMISS_KEY = 'nourish-burn-dismissed';
-
 /**
  * Voluntary onboarding for the calories-burned (TDEE) feature. Asked once:
- * height, birth date, gender. User can dismiss it (persisted in localStorage so
- * it stops nagging); data is only saved when they explicitly submit.
+ * height, birth date, gender. The ✕ cancels back to the teaser (onCancel) —
+ * it does NOT dismiss the feature (the teaser's "Not now" handles that).
+ * Metrics are only saved when the user explicitly submits.
  */
-export default function BurnSetup({ token, onSaved }: { token: string | null; onSaved: () => void }) {
+export default function BurnSetup({
+  token,
+  onSaved,
+  onCancel,
+}: {
+  token: string | null;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
   const [height, setHeight] = useState('');
   const [birth, setBirth] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function dismiss() {
-    if (typeof window !== 'undefined') window.localStorage.setItem(DISMISS_KEY, '1');
-    onSaved();
-  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -56,8 +58,9 @@ export default function BurnSetup({ token, onSaved }: { token: string | null; on
         </div>
         <button
           type="button"
-          onClick={dismiss}
-          aria-label="Dismiss"
+          onClick={onCancel}
+          aria-label="Back to teaser"
+          title="Back"
           className="shrink-0 rounded-lg p-1 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
         >
           ✕
@@ -65,8 +68,8 @@ export default function BurnSetup({ token, onSaved }: { token: string | null; on
       </div>
 
       <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-3">
-        <div className="flex gap-2">
-          <label className="min-w-0 flex-1">
+        <div className="flex flex-col gap-3">
+          <label>
             <span className="text-[11px] uppercase tracking-wide text-zinc-500">Height (cm)</span>
             <input
               type="number"
@@ -79,7 +82,7 @@ export default function BurnSetup({ token, onSaved }: { token: string | null; on
               className={`${inputCls} mt-1 w-full`}
             />
           </label>
-          <label className="min-w-0 flex-1">
+          <label>
             <span className="text-[11px] uppercase tracking-wide text-zinc-500">Birth date</span>
             <input
               type="date"

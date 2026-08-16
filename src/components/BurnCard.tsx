@@ -18,6 +18,23 @@ import { useTheme } from './theme';
 import BurnSetup from './BurnSetup';
 
 const DISMISS_KEY = 'nourish-burn-dismissed';
+const DAY_MS = 24 * 60 * 60 * 1000;
+// "Not now" only hides the teaser briefly; it reappears after this long so the
+// feature is never permanently lost.
+const DISMISS_DAYS = 3;
+
+/**
+ * Whether a stored dismissal is still "in effect". We store an ISO timestamp;
+ * only values newer than DISMISS_DAYS count. Anything else (missing, the legacy
+ * `'1'` flag from before this change, or an old timestamp) is treated as
+ * not-dismissed so the teaser shows again.
+ */
+function isDismissed(stored: string | null): boolean {
+  if (!stored) return false;
+  const t = Date.parse(stored);
+  if (Number.isNaN(t)) return false; // legacy '1' flag → expired
+  return Date.now() - t < DISMISS_DAYS * DAY_MS;
+}
 
 const EATEN_COLOR = '#10b981'; // emerald — matches the app's eaten/macro green
 const BURNED_COLOR = '#0ea5e9'; // sky
@@ -40,7 +57,7 @@ export default function BurnCard({
 
   const [burn, setBurn] = useState<BurnResponse | null>(null);
   const [dismissed, setDismissed] = useState<boolean>(() =>
-    typeof window !== 'undefined' ? window.localStorage.getItem(DISMISS_KEY) === '1' : false,
+    typeof window !== 'undefined' ? isDismissed(window.localStorage.getItem(DISMISS_KEY)) : false,
   );
   // Before the user opts in, show a blurred teaser; tapping Start reveals the form.
   const [showSetup, setShowSetup] = useState(false);
@@ -80,11 +97,15 @@ export default function BurnCard({
     };
   }, [token]);
 
-  async function handleSetupDone() {
-    setDismissed(
-      typeof window !== 'undefined' ? window.localStorage.getItem(DISMISS_KEY) === '1' : false,
-    );
+  async function handleSaved() {
     await load();
+  }
+
+  // "Not now" from the teaser: hide briefly (stamped timestamp, honoured by
+  // isDismissed for DISMISS_DAYS) rather than permanently.
+  function handleDismiss() {
+    if (typeof window !== 'undefined') window.localStorage.setItem(DISMISS_KEY, new Date().toISOString());
+    setDismissed(true);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -116,9 +137,10 @@ export default function BurnCard({
   if (!burn.hasMetrics) {
     if (dismissed) return null;
     if (!showSetup) {
-      return <BurnTeaser onStart={() => setShowSetup(true)} onDismiss={handleSetupDone} />;
+      return <BurnTeaser onStart={() => setShowSetup(true)} onDismiss={handleDismiss} />;
     }
-    return <BurnSetup token={token} onSaved={handleSetupDone} />;
+    // The form's ✕ cancels back to the teaser (onCancel); it never dismisses.
+    return <BurnSetup token={token} onSaved={handleSaved} onCancel={() => setShowSetup(false)} />;
   }
 
   // ---- Merge eaten (from dashboard week) with burned (fetched) by date -----
