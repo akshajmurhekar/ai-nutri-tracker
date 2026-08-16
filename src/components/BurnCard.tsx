@@ -212,7 +212,7 @@ export default function BurnCard({
           max={5000}
           value={gymInput}
           onChange={(e) => setGymInput(e.target.value)}
-          placeholder="Gym calories (optional)"
+          placeholder="Gym kcal"
           disabled={busy || !token}
           className="w-44 min-w-0 rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-base outline-none transition focus:border-sky-500/60 dark:border-zinc-700 dark:bg-zinc-800"
         />
