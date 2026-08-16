@@ -182,20 +182,9 @@ export default function BurnCard({
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            Calories burned 🔥
-          </h2>
-          <button
-            type="button"
-            onClick={handleRecalc}
-            disabled={recalculating}
-            title="Re-estimate your TDEE from your current weight"
-            className="text-[11px] font-medium text-sky-600 transition hover:underline disabled:opacity-50 dark:text-sky-400"
-          >
-            {recalculating ? 'Recalculating…' : 'Recalculate'}
-          </button>
-        </div>
+        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+          Calories burned 🔥
+        </h2>
         {today && (
           <span className="text-xs text-zinc-500">
             today:{' '}
@@ -293,6 +282,16 @@ export default function BurnCard({
             : 'You ate more than you burned today.'}
         </p>
       )}
+
+      <button
+        type="button"
+        onClick={handleRecalc}
+        disabled={recalculating}
+        title="Re-estimate your TDEE from your current weight"
+        className="mt-3 text-[11px] font-medium text-zinc-400 transition hover:text-sky-600 hover:underline disabled:opacity-50 dark:text-zinc-500 dark:hover:text-sky-400"
+      >
+        {recalculating ? 'Recalculating…' : 'Recalculate TDEE'}
+      </button>
     </section>
   );
 }
