@@ -150,8 +150,8 @@ export async function logFood(
 }
 
 /** GET /api/burn — daily calories-burned window (also triggers lazy TDEE refresh). */
-export async function fetchBurn(token: string, days = 7): Promise<BurnResponse> {
-  const res = await fetch(`/api/burn?days=${days}`, {
+export async function fetchBurn(token: string, days = 7, force = false): Promise<BurnResponse> {
+  const res = await fetch(`/api/burn?days=${days}${force ? '&force=1' : ''}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {

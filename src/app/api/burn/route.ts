@@ -80,6 +80,9 @@ export async function GET(request: NextRequest) {
   const { supabase, user } = auth;
 
   const days = clampDays(Number(request.nextUrl.searchParams.get('days')));
+  // `?force=1` recomputes TDEE even if not stale (used by the card's manual
+  // "Recalculate" button, e.g. right after the estimate policy changes).
+  const force = request.nextUrl.searchParams.get('force') === '1';
 
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
@@ -100,7 +103,7 @@ export async function GET(request: NextRequest) {
       !metrics.tdee_updated_at ||
       Date.now() - new Date(metrics.tdee_updated_at).getTime() >= ENERGY_REFRESH_DAYS * DAY_MS;
 
-    if (stale) {
+    if (stale || force) {
       await maybeRefreshTdee(supabase, user.id, metrics);
     }
   }

@@ -63,7 +63,23 @@ export default function BurnCard({
   const [showSetup, setShowSetup] = useState(false);
   const [gymInput, setGymInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Force a fresh TDEE compute on demand (skips the weekly throttle).
+  async function handleRecalc() {
+    if (!token || recalculating) return;
+    setRecalculating(true);
+    setError(null);
+    try {
+      const data = await fetchBurn(token, 7, true);
+      setBurn(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not recalculate');
+    } finally {
+      setRecalculating(false);
+    }
+  }
 
   async function load() {
     if (!token) return;
@@ -166,9 +182,20 @@ export default function BurnCard({
   return (
     <section className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          Calories burned 🔥
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            Calories burned 🔥
+          </h2>
+          <button
+            type="button"
+            onClick={handleRecalc}
+            disabled={recalculating}
+            title="Re-estimate your TDEE from your current weight"
+            className="text-[11px] font-medium text-sky-600 transition hover:underline disabled:opacity-50 dark:text-sky-400"
+          >
+            {recalculating ? 'Recalculating…' : 'Recalculate'}
+          </button>
+        </div>
         {today && (
           <span className="text-xs text-zinc-500">
             today:{' '}
