@@ -27,7 +27,9 @@ export default function SummaryCards({ today }: { today: TodayTotals }) {
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
             {c.label}
           </p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+          {/* tabular-nums omitted: iOS WebKit can clip a numeral's leading
+              digits on mobile, which showed only the trailing "00". */}
+          <p className="mt-1.5 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
             {c.value.toLocaleString()}
             <span className="ml-1 text-sm font-medium text-zinc-400 dark:text-zinc-500">
               {c.unit}

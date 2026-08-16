@@ -42,7 +42,7 @@ export default function WeeklyChart({ week }: { week: DayBreakdown[] }) {
 
       <div className="h-52 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={week} margin={{ top: 8, right: 0, left: -18, bottom: 0 }}>
+          <BarChart data={week} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
             <XAxis
               dataKey="label"

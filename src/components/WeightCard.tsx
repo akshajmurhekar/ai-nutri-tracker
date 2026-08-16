@@ -234,7 +234,7 @@ export default function WeightCard({ token }: { token: string | null }) {
 
           <div className="mt-2 h-40 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chart} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+              <ComposedChart data={chart} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: axisTick, fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis
