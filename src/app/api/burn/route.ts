@@ -97,7 +97,11 @@ export async function GET(request: NextRequest) {
   const metrics = profile as ProfileRow;
   const hasMetrics = !!(metrics.height_cm && metrics.birth_date && metrics.gender);
 
-  // ---- Lazy, throttled TDEE refresh --------------------------------------
+  // ---- Lazy, throttled TDEE refresh + daily baseline materialization ------
+  const keys = recentDayKeys(days);
+  const from = keys[0];
+  const to = keys[keys.length - 1];
+
   if (hasMetrics) {
     const stale =
       !metrics.tdee_updated_at ||
@@ -106,13 +110,17 @@ export async function GET(request: NextRequest) {
     if (stale || force) {
       await maybeRefreshTdee(supabase, user.id, metrics);
     }
+
+    // The weekly Gemini refresh only backfills the window at refresh time, so
+    // days that have since rolled past (today included) would otherwise read as
+    // 0 burned / "no baseline" until the next refresh — making it look like the
+    // TDEE needs recalculating every day. Fill those gaps with the current
+    // baseline: a plain DB copy, no Gemini, no quota. The estimate itself still
+    // only changes via the weekly (or manual `?force=1`) refresh.
+    await ensureWindowBaseline(supabase, user.id, keys);
   }
 
   // ---- Read the window -----------------------------------------------------
-  const keys = recentDayKeys(days);
-  const from = keys[0];
-  const to = keys[keys.length - 1];
-
   const { data: rows, error } = await supabase
     .from('energy_logs')
     .select('date, bmr, tdee, gym_calories')
@@ -211,6 +219,61 @@ async function maybeRefreshTdee(
     .from('profiles')
     .update({ tdee_updated_at: new Date().toISOString() })
     .eq('user_id', userId);
+}
+
+/**
+ * Fills any day in `keys` that lacks a TDEE baseline with the most recent
+ * estimate, preserving already-logged gym calories. No Gemini call. This is what
+ * rolls the baseline forward daily between the weekly refreshes so today always
+ * shows its TDEE + gym; it's a no-op right after a refresh (the window is already
+ * covered) and whenever there's no baseline to copy yet.
+ */
+async function ensureWindowBaseline(
+  supabase: SupabaseClient,
+  userId: string,
+  keys: string[],
+): Promise<void> {
+  // Most recent known baseline — the value we copy forward between refreshes.
+  const { data: latest } = await supabase
+    .from('energy_logs')
+    .select('date, tdee')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const baseline = latest?.tdee != null ? Number(latest.tdee) : null;
+  if (baseline == null) return; // no baseline yet — the "no baseline" state is accurate
+
+  const { data: rows } = await supabase
+    .from('energy_logs')
+    .select('date, tdee, gym_calories')
+    .eq('user_id', userId)
+    .gte('date', keys[0])
+    .lte('date', keys[keys.length - 1]);
+
+  const byDate = new Map(
+    (rows ?? []).map((r: { date: string; tdee: number | null; gym_calories: number | null }) => [
+      r.date,
+      r,
+    ]),
+  );
+
+  const upserts: Record<string, unknown>[] = [];
+  for (const date of keys) {
+    const row = byDate.get(date);
+    if (row && row.tdee != null) continue; // already has a baseline
+    upserts.push({
+      user_id: userId,
+      date,
+      tdee: baseline,
+      gym_calories: row ? Number(row.gym_calories) || 0 : 0,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  if (upserts.length) {
+    await supabase.from('energy_logs').upsert(upserts, { onConflict: 'user_id,date' });
+  }
 }
 
 /**
